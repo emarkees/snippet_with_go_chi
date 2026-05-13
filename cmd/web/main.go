@@ -9,6 +9,17 @@ import (
 	"os"
 )
 
+/*
+	Define an application struct to hold the application-wide dependencies for the
+	web application. For now we'll only include fields for the two custom loggers, but
+	we'll add more to it as the build progresses.
+*/
+
+type application struct {
+	errorLog *log.Logger
+	infoLog *log.Logger
+}
+
 func main() {
 
 	addr := flag.String("addr", ":8080", "HTTP network address")
@@ -26,7 +37,13 @@ func main() {
 
 	routes.SetUpRoutes(r)
 
+	srv := &http.Server{
+		Add:  *addr,
+		ErrorLog: errorLog,
+		handlers: r
+	}
+
 	infoLog.Printf("Server is running on %s", *addr)
-	err := http.ListenAndServe(*addr, r)
+	err := srv.ListenAndServe()
 	errorLog.Fatal(err)
 }
