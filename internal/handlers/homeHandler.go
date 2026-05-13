@@ -2,9 +2,13 @@ package handlers
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 )
+
+// type Application struct {
+// 	errorLog *log.Logger
+// 	infoLog  *log.Logger
+// }
 
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
