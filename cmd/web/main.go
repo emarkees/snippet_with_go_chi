@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
+	"github.com/emarkees/chi/internal/app"
 	"github.com/emarkees/chi/internal/routes"
-	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +15,7 @@ func main() {
 
 	flag.Parse()
 
-	infoLog := log.New(os.Stdout, "INFOR\t", log.Ldate|log.Ltime)
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
@@ -24,23 +24,19 @@ func main() {
 		dependencies.
 	*/
 
-	app := &application.Application{
-		errorLog: errorLog,
-		infoLog:  infoLog,
+	app := &app.Application{
+		ErrorLog: errorLog,
+		InfoLog:  infoLog,
 	}
 
-	r := chi.NewRouter()
+	// r := chi.NewRouter()
 
-	// File is serve through the http.FileServer
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	r.Handle("/static/*", http.StripPrefix("/static", fileServer))
-
-	routes.SetUpRoutes(r, app)
+	router := routes.SetUpRoutes(app)
 
 	srv := &http.Server{
-		Addr:      *addr,
+		Addr:     *addr,
 		ErrorLog: errorLog,
-		Handlers: r,
+		Handler:  router,
 	}
 
 	infoLog.Printf("Server is running on %s", *addr)
