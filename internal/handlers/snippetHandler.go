@@ -5,8 +5,10 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"errors"
 
 	"github.com/emarkees/chi/internal/app"
+	"github.com/emarkees/chi/internal/models"
 )
 
 func Home(app *app.Application) http.HandlerFunc {
@@ -38,6 +40,34 @@ func Home(app *app.Application) http.HandlerFunc {
 	}
 }
 
+func CreateSnippet(app *app.Application) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", http.MethodPost)
+			clientError(w, http.StatusMethodNotAllowed)
+			return
+		}
+
+		title := "O snail"
+		content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
+		expiresAt := 7
+
+		id, err := app.Snippets.Insert(title, content, expiresAt)
+		if err != nil {
+			serverError(app, w, err)
+			return
+		}
+
+		app.InfoLog.Printf("Snippet created with ID %d", id)
+		http.Redirect(w, r, fmt.Sprintf("/snippet/view?id=%d", id), http.StatusSeeOther)
+
+		// w.WriteHeader(http.StatusCreated)
+
+		// w.Write([]byte("Snippet created successfully"))
+	}
+}
+
 func ViewSnippet(app *app.Application) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.Atoi(r.URL.Query().Get("id"))
@@ -46,17 +76,19 @@ func ViewSnippet(app *app.Application) http.HandlerFunc {
 			return
 		}
 
-		fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+		snippet, err := app.Snippets.Get(id)
+		if err != nil {
+			if errors.Is(err, models.ErrNoRecord) {
+				notFound(w)
+			} else {
+				serverError(app, w, err)
+			}
+			return
+		}
+
+		fmt.Fprintf(w, "%+v", snippet)
 	}
 }
 
-func CreateSnippet(app *app.Application) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			w.Header().Set("Allowed", http.MethodPost)
-			clientError(w, http.StatusMethodNotAllowed)
-			return
-		}
-		w.Write([]byte("Create a snippet"))
-	}
-}
+
+

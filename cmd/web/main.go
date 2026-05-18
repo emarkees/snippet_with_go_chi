@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/emarkees/chi/internal/app"
+	"github.com/emarkees/chi/internal/models"
 	"github.com/emarkees/chi/internal/routes"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -23,22 +24,19 @@ func main() {
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	// Connect to database (POOL)
-	dbpool, err := pgxpool.New(context.Background(), *dsn)
+	db, err := openDB(*dsn)
 	if err != nil {
 		errorLog.Fatal(err)
 	}
-	defer dbpool.Close()
+	defer db.Close()
 
-	// Test connection
-	err = dbpool.Ping(context.Background())
-	if err != nil {
-		errorLog.Fatal(err)
-	}
+	infoLog.Println("Database successfully established")
 
 	// Application struct
 	app := &app.Application{
 		ErrorLog: errorLog,
 		InfoLog:  infoLog,
+		Snippets:  &models.SnippetModel{DB: db},
 		// DB: dbpool, // (recommended to add this)
 	}
 
@@ -56,4 +54,16 @@ func main() {
 	errorLog.Fatal(err)
 }
 
-func openDB()
+func openDB(dsn string) (*pgxpool.Pool, error) {
+	dbpool, err := pgxpool.New(context.Background(), dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = dbpool.Ping(context.Background()); err != nil {
+		dbpool.Close()
+		return nil, err
+	}
+
+	return dbpool, nil
+}
