@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	"html/template"
+	// "html/template"
 	"net/http"
 	"strconv"
 	"errors"
@@ -20,23 +20,33 @@ func Home(app *app.Application) http.HandlerFunc {
 			return
 		}
 
-		files := []string{
-			"./ui/html/base.tmpl",
-			"./ui/html/partials/nav.tmpl",
-			"./ui/html/pages/home.tmpl",
-		}
-
-		ts, err := template.ParseFiles(files...)
+		snippets, err := app.Snippets.Latest()
 		if err != nil {
 			serverError(app, w, err)
 			return
 		}
 
-		err = ts.ExecuteTemplate(w, "base", nil)
-		if err != nil {
-			serverError(app, w, err)
-			return
+		for _, snippet := range snippets {
+			fmt.Fprintf(w, "%+v\n", snippet)
 		}
+
+		// files := []string{
+		// 	"./ui/html/base.tmpl",
+		// 	"./ui/html/partials/nav.tmpl",
+		// 	"./ui/html/pages/home.tmpl",
+		// }
+
+		// ts, err := template.ParseFiles(files...)
+		// if err != nil {
+		// 	serverError(app, w, err)
+		// 	return
+		// }
+
+		// err = ts.ExecuteTemplate(w, "base", nil)
+		// if err != nil {
+		// 	serverError(app, w, err)
+		// 	return
+		// }
 	}
 }
 
@@ -76,7 +86,7 @@ func ViewSnippet(app *app.Application) http.HandlerFunc {
 			return
 		}
 
-		snippet, err := app.Snippets.Get(id)
+		snippet, err := app.Snippets.Get(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, models.ErrNoRecord) {
 				notFound(w)
