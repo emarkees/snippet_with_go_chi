@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	// "html/template"
+	"html/template"
 	"net/http"
 	"strconv"
 	"errors"
@@ -26,27 +26,27 @@ func Home(app *app.Application) http.HandlerFunc {
 			return
 		}
 
-		for _, snippet := range snippets {
-			fmt.Fprintf(w, "%+v\n", snippet)
+		files := []string{
+			"./ui/html/base.tmpl",
+			"./ui/html/partials/nav.tmpl",
+			"./ui/html/pages/home.tmpl",
 		}
 
-		// files := []string{
-		// 	"./ui/html/base.tmpl",
-		// 	"./ui/html/partials/nav.tmpl",
-		// 	"./ui/html/pages/home.tmpl",
-		// }
+		ts, err := template.ParseFiles(files...)
+		if err != nil {
+			serverError(app, w, err)
+			return
+		}
 
-		// ts, err := template.ParseFiles(files...)
-		// if err != nil {
-		// 	serverError(app, w, err)
-		// 	return
-		// }
+		data := &templateData{
+			Snippets: snippets,
+		}
 
-		// err = ts.ExecuteTemplate(w, "base", nil)
-		// if err != nil {
-		// 	serverError(app, w, err)
-		// 	return
-		// }
+		err = ts.ExecuteTemplate(w, "base", data)
+		if err != nil {
+			serverError(app, w, err)
+			return
+		}
 	}
 }
 
@@ -96,7 +96,29 @@ func ViewSnippet(app *app.Application) http.HandlerFunc {
 			return
 		}
 
-		fmt.Fprintf(w, "%+v", snippet)
+		files := []string{
+			"./ui/html/base.tmpl",
+			"./ui/html/partials/nav.tmpl",
+			"./ui/html/pages/view.tmpl",
+		}
+
+		ts, err := template.ParseFiles(files...)
+		if err !=  nil {
+			serverError(app, w, err)
+			return
+		}
+
+		data := &templateData{
+			Snippet: snippet,
+		}
+
+		err = ts.ExecuteTemplate(w, "base", data)
+		if err != nil {
+			serverError(app, w, err)
+			return
+		}
+
+		// fmt.Fprintf(w, "%+v", snippet)
 	}
 }
 
