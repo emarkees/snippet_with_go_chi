@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/emarkees/chi/internal/app"
 	"net/http"
 	"runtime/debug"
+	"time"
+
+	"github.com/emarkees/chi/internal/app"
 )
 
 func serverError(app *app.Application, w http.ResponseWriter, err error) {
@@ -22,4 +25,35 @@ func clientError(w http.ResponseWriter, status int) {
 
 func notFound(w http.ResponseWriter) {
 	clientError(w, http.StatusNotFound)
+}
+
+func render(app *app.Application, w http.ResponseWriter, status int, page string, data *templateData) {
+	ts, ok := app.TemplateCache[page]
+	if !ok {
+		err := fmt.Errorf("the template %s does not exist", page)
+		serverError(app, w, err)
+		return
+	}
+
+	// Initialize a buffer
+	buf := new(bytes.Buffer)
+
+	err := ts.ExecuteTemplate(buf, "base", data)
+	if err != nil {
+		serverError(app, w, err)
+		return
+	}
+
+	w.WriteHeader(status)
+
+	_, err = buf.WriteTo(w)
+	if err != nil {
+		serverError(app, w, err)
+	}
+}
+
+func newTemplateData(app *app.Application, r *http.Request) *templateData {
+    return &templateData{
+        CurrentYear: time.Now().Year(),
+    }
 }

@@ -17,31 +17,38 @@ type Snippet struct {
 }
 
 /**
-Define a SnippetModel type which wraps a sql.DB connection pool.
+Define a SnippetModel type which wraps a sql.db connection pool.
 */
 
 type SnippetModel struct {
-	DB *pgxpool.Pool
+	db *pgxpool.Pool
 }
 
-// func NewSnippetModel(db *pgxpool.Pool) *SnippetModel {
-// 	return &SnippetModel{
-// 		DB: db,
-// 	}
-// }
+
+// create a constructure
+func NewSnippetModel(db *pgxpool.Pool) *SnippetModel {
+	if db == nil {
+		panic("nill db")
+	}
+	return &SnippetModel{
+		db: db,
+	}
+}
 
 var ErrNoRecord = errors.New("models: no matching record found")
 
-func (m *SnippetModel) Insert(title string, content string, expiresAt int) (int, error) {
+func (m *SnippetModel) Insert(ctx context.Context, title string, content string, expiresAt int) (int, error) {
 	query := `
 		INSERT INTO snippets (title, content, expires_at)
 		VALUES ($1, $2, CURRENT_TIMESTAMP + ($3 * INTERVAL '1 day'))
 		RETURNING id
 	`
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 
 	var id int
 
-	err := m.DB.QueryRow(context.Background(), query, title, content, expiresAt).Scan(&id)
+	err := m.db.QueryRow(ctx, query, title, content, expiresAt).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -55,11 +62,13 @@ func (m *SnippetModel) Get(ctx context.Context, id int) (*Snippet, error) {
 		FROM snippets
 		WHERE id = $1
 	`
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 
 	s := &Snippet{}
 
 	// ctx, cancel := context.WithTimeouts()
-	err := m.DB.QueryRow(ctx, query, id).Scan(&s.ID, &s.Title, &s.Content, &s.CreatedAt, &s.ExpiresAt)
+	err := m.db.QueryRow(ctx, query, id).Scan(&s.ID, &s.Title, &s.Content, &s.CreatedAt, &s.ExpiresAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNoRecord
@@ -70,7 +79,7 @@ func (m *SnippetModel) Get(ctx context.Context, id int) (*Snippet, error) {
 	return s, nil
 }
 
-func (m *SnippetModel) Latest() ([]*Snippet, error) {
+func (m *SnippetModel) Latest(ctx context.Context) ([]*Snippet, error) {
 	query := `
 		SELECT id, title, content, created_at, expires_at
 		FROM snippets
@@ -78,7 +87,11 @@ func (m *SnippetModel) Latest() ([]*Snippet, error) {
 		ORDER BY created_at DESC
 		LIMIT 10
 	`
-	rows, err := m.DB.Query(context.Background(), query)
+
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	rows, err := m.db.Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}

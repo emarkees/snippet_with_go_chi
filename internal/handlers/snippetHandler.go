@@ -1,11 +1,10 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
-	"errors"
 
 	"github.com/emarkees/chi/internal/app"
 	"github.com/emarkees/chi/internal/models"
@@ -20,33 +19,16 @@ func Home(app *app.Application) http.HandlerFunc {
 			return
 		}
 
-		snippets, err := app.Snippets.Latest()
+		snippets, err := app.Snippets.Latest(r.Context())
 		if err != nil {
 			serverError(app, w, err)
 			return
 		}
 
-		files := []string{
-			"./ui/html/base.tmpl",
-			"./ui/html/partials/nav.tmpl",
-			"./ui/html/pages/home.tmpl",
-		}
+		data := newTemplateData(app, r)
+		data.Snippets = snippets
 
-		ts, err := template.ParseFiles(files...)
-		if err != nil {
-			serverError(app, w, err)
-			return
-		}
-
-		data := &templateData{
-			Snippets: snippets,
-		}
-
-		err = ts.ExecuteTemplate(w, "base", data)
-		if err != nil {
-			serverError(app, w, err)
-			return
-		}
+		render(app, w, http.StatusOK, "home.tmpl", data)
 	}
 }
 
@@ -63,7 +45,7 @@ func CreateSnippet(app *app.Application) http.HandlerFunc {
 		content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
 		expiresAt := 7
 
-		id, err := app.Snippets.Insert(title, content, expiresAt)
+		id, err := app.Snippets.Insert(r.Context(), title, content, expiresAt)
 		if err != nil {
 			serverError(app, w, err)
 			return
@@ -96,31 +78,9 @@ func ViewSnippet(app *app.Application) http.HandlerFunc {
 			return
 		}
 
-		files := []string{
-			"./ui/html/base.tmpl",
-			"./ui/html/partials/nav.tmpl",
-			"./ui/html/pages/view.tmpl",
-		}
+		data := newTemplateData(app, r)
+		data.Snippet = snippet
 
-		ts, err := template.ParseFiles(files...)
-		if err !=  nil {
-			serverError(app, w, err)
-			return
-		}
-
-		data := &templateData{
-			Snippet: snippet,
-		}
-
-		err = ts.ExecuteTemplate(w, "base", data)
-		if err != nil {
-			serverError(app, w, err)
-			return
-		}
-
-		// fmt.Fprintf(w, "%+v", snippet)
+		render(app, w, http.StatusOK, "view.tmpl", data)
 	}
 }
-
-
-
