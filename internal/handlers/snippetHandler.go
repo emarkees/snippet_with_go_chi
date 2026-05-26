@@ -18,6 +18,7 @@ func Home(app *app.Application) http.HandlerFunc {
 			notFound(w)
 			return
 		}
+		panic("oops! something went wrong")
 
 		snippets, err := app.Snippets.Latest(r.Context())
 		if err != nil {

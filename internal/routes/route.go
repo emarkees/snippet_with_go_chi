@@ -5,14 +5,16 @@ import (
 
 	"github.com/emarkees/chi/internal/app"
 	"github.com/emarkees/chi/internal/handlers"
-	"github.com/emarkees/chi/internal/middleware"
+	"github.com/emarkees/chi/internal/middlewares"
 	"github.com/go-chi/chi/v5"
 )
 
 func SetUpRoutes(app *app.Application) *chi.Mux {
 	r := chi.NewRouter()
 
-	r.Use(middleware.SecureHeaders)
+	r.Use(middlewares.SecureHeaders)
+	r.Use(middlewares.LogRequest(app))
+	r.Use(middlewares.RecoverPanic)
 
 	// File is serve through the http.FileServer
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
