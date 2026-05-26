@@ -11,6 +11,7 @@ import (
 	"github.com/emarkees/chi/internal/models"
 	"github.com/emarkees/chi/internal/routes"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/emarkees/chi/internal/templates"
 )
 
 func main() {
@@ -32,11 +33,17 @@ func main() {
 
 	infoLog.Println("Database successfully established")
 
+	templateCache, err := templates.NewTemplateCache()
+	if err != nil {
+		errorLog.Fatal(err)
+	}
+
 	// Application struct
 	app := &app.Application{
 		ErrorLog: errorLog,
 		InfoLog:  infoLog,
-		Snippets:  &models.SnippetModel{DB: db},
+		Snippets: models.NewSnippetModel(db),
+		TemplateCache: templateCache,
 		// DB: dbpool, // (recommended to add this)
 	}
 
